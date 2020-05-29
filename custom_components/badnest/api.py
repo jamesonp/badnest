@@ -194,7 +194,7 @@ class NestAPI:
             # get camera updates
             for camera in self.cameras:
                 current_timestamp = int(time.time())
-                start_timestamp = current_timestamp - 60 * 60
+                start_timestamp = current_timestamp - 60 * 10
                 r = self._session.get(
                     f"https://{self.device_data[camera]['nexus_api_nest_domain_host']}/cuepoint/{camera}/2?start_time={start_timestamp}&_={current_timestamp}",
                     headers={"cookie": f"user_token={self._access_token}"},
@@ -202,19 +202,18 @@ class NestAPI:
                 if r.status_code == 200:
                     events = list()
                     for e in r.json():
-                        if e["is_important"]:
-                            events.append(
-                                {
-                                    "start_time": e["start_time"],
-                                    "end_time": e["end_time"],
-                                    "is_important": e["is_important"],
-                                    "importance": e["importance"],
-                                    "in_progress": e["in_progress"],
-                                    "types": e["types"],
-                                    "face_name": e["face_name"],
-                                    "zone_ids": e["zone_ids"]
-                                }
-                            )
+                        events.append(
+                            {
+                                "start_time": e["start_time"],
+                                "end_time": e["end_time"],
+                                "is_important": e["is_important"],
+                                "importance": e["importance"],
+                                "in_progress": e["in_progress"],
+                                "types": e["types"],
+                                "face_name": e["face_name"],
+                                "zone_ids": e["zone_ids"]
+                            }
+                        )
                     _LOGGER.debug(f"Was able to get {len(events)} events")
                     self.device_data[camera]["events"] = events
                 else:
