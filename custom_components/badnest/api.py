@@ -211,10 +211,8 @@ class NestAPI:
                                     "importance": e["importance"],
                                     "in_progress": e["in_progress"],
                                     "types": e["types"],
-                                    "types1": e["types"][0],
-                                    "types2": e["types"][1],
-                                    "types3": e["types"][2],
                                     "face_name": e["face_name"],
+                                    "zone_ids": e["zone_ids"]
                                 }
                             )
                     _LOGGER.debug(f"Was able to get {len(events)} events")
