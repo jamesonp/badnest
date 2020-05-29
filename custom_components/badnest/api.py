@@ -207,8 +207,13 @@ class NestAPI:
                                 {
                                     "start_time": e["start_time"],
                                     "end_time": e["end_time"],
+                                    "is_important": e["is_important"],
+                                    "importance": e["importance"],
                                     "in_progress": e["in_progress"],
                                     "types": e["types"],
+                                    "types1": e["types"][0],
+                                    "types2": e["types"][1],
+                                    "types3": e["types"][2],
                                     "face_name": e["face_name"],
                                 }
                             )
