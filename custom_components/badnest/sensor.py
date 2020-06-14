@@ -51,8 +51,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     _LOGGER.info("Adding nest camera detection sensors")
     for sensor in api["cameras"]:
         _LOGGER.info(f"Adding nest camera detection sensor uuid: {sensor}")
-        for sensor_type in PROTECT_SENSOR_TYPES:
-            detection_event_sensors.append(NestCameraDetectionSensor(sensor, api))
+        camera_detection_sensors.append(NestCameraDetectionSensor(sensor, api))
 
     async_add_entities(detection_event_sensors)
 
