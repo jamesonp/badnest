@@ -154,7 +154,7 @@ class NestCameraEventSensor(Entity):
     def state(self):
         """Return the state of the sensor."""
         try:
-            return self.device.device_data[self.device_id]["events"][0]["start_time"]
+            return self.device.device_data[self.device_id]["events"][-1]["start_time"]
         except (IndexError, TypeError):
             return None
 
