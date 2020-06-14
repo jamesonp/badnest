@@ -229,7 +229,7 @@ class NestCameraDetectionSensor(Entity):
             ).replace(tzinfo=datetime.timezone.utc)
             end_datetime = datetime.datetime.fromisoformat(last_event["end_time"])
 
-            if last_event["end_time"] and timeout_datetime < end_datetime:
+            if last_event["end_time"] and timeout_datetime > end_datetime:
                 return {
                     "start_time": last_event["start_time"],
                     "end_time": last_event["end_time"],
