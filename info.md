@@ -42,6 +42,9 @@ You will find `user_id` and `access_token` in the response to the request.
 badnest:
   user_id: 11111
   access_token: !secret nest_access_token
+  camera_only_important: True / False   # (Optional)
+  camera_event_minutes: 120 # minutes to get camera events for (optional)
+  camera_event_timeout: 1  # minutes for detector to hold a state
 
 climate:
   - platform: badnest
