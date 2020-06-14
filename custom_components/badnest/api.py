@@ -2,6 +2,8 @@ import logging
 
 import requests
 import time
+import datetime
+
 
 API_URL = "https://home.nest.com"
 CAMERA_WEBAPI_BASE = "https://webapi.camera.home.nest.com"
@@ -29,11 +31,23 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class NestAPI:
-    def __init__(self, user_id, access_token, issue_token, cookie):
+    def __init__(
+        self,
+        user_id,
+        access_token,
+        issue_token,
+        cookie,
+        camera_only_important,
+        camera_event_minutes,
+        camera_event_timeout,
+    ):
         self.device_data = {}
         self._wheres = {}
         self._user_id = user_id
         self._access_token = access_token
+        self.camera_only_important = camera_only_important
+        self.camera_event_minutes = camera_event_minutes
+        self.camera_event_timeout = camera_event_timeout
         self._session = requests.Session()
         self._session.headers.update(
             {"Referer": "https://home.nest.com/", "User-Agent": USER_AGENT,}
@@ -133,7 +147,9 @@ class NestAPI:
 
         except KeyError:
             if count < 3:
-                _LOGGER.debug("Failed to get cameras, trying to log in again (max 3 attempts)")
+                _LOGGER.debug(
+                    "Failed to get cameras, trying to log in again (max 3 attempts)"
+                )
                 self.login()
                 return self._get_cameras(count)
 
@@ -194,24 +210,43 @@ class NestAPI:
             # get camera updates
             for camera in self.cameras:
                 current_timestamp = int(time.time())
-                start_timestamp = current_timestamp - 60 * 10
+                start_timestamp = current_timestamp - 60 * self.camera_event_minutes
                 r = self._session.get(
                     f"https://{self.device_data[camera]['nexus_api_nest_domain_host']}/cuepoint/{camera}/2?start_time={start_timestamp}&_={current_timestamp}",
                     headers={"cookie": f"user_token={self._access_token}"},
                 )
                 if r.status_code == 200:
                     events = list()
-                    for e in r.json():
+                    if self.camera_only_important:
+                        events_to_process = [e for e in r.json() if e["is_important"]]
+                    else:
+                        events_to_process = r.json()
+
+                    for e in events_to_process:
+                        start_time = (
+                            datetime.datetime.fromtimestamp(e["start_time"] // 1000)
+                            .replace(tzinfo=datetime.timezone.utc)
+                            .isoformat()
+                        )
+                        if e["end_time"]:
+                            end_time = (
+                                datetime.datetime.fromtimestamp(e["end_time"] // 1000)
+                                .replace(tzinfo=datetime.timezone.utc)
+                                .isoformat()
+                            )
+                        else:
+                            end_time = ""
+
                         events.append(
                             {
-                                "start_time": e["start_time"],
-                                "end_time": e["end_time"],
+                                "start_time": start_time,
+                                "end_time": end_time,
                                 "is_important": e["is_important"],
                                 "importance": e["importance"],
                                 "in_progress": e["in_progress"],
                                 "types": e["types"],
                                 "face_name": e["face_name"],
-                                "zone_ids": e["zone_ids"]
+                                "zone_ids": e["zone_ids"],
                             }
                         )
                     _LOGGER.debug(f"Was able to get {len(events)} events")
@@ -343,7 +378,7 @@ class NestAPI:
                         "current_temperature"
                     ]
                     self.device_data[sn]["battery_level"] = sensor_data["battery_level"]
-        except requests.exceptions.RequestException as e:
+        except (requests.exceptions.RequestException, ValueError,) as e:
             _LOGGER.error(e)
             if count < 3:
                 _LOGGER.error("Failed to update, trying again")

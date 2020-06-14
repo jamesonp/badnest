@@ -1,5 +1,8 @@
-DOMAIN = 'badnest'
-CONF_ISSUE_TOKEN = 'issue_token'
-CONF_COOKIE = 'cookie'
-CONF_USER_ID = 'user_id'
-CONF_ACCESS_TOKEN = 'access_token'
+DOMAIN = "badnest"
+CONF_ISSUE_TOKEN = "issue_token"
+CONF_COOKIE = "cookie"
+CONF_USER_ID = "user_id"
+CONF_ACCESS_TOKEN = "access_token"
+CONF_CAMERA_EVENT_IMPORTANT = "camera_only_important"
+CONF_CAMERA_EVENT_MINUTES = "camera_event_minutes"
+CONF_CAMERA_EVENT_TIMEOUT = "camera_event_timeout"
