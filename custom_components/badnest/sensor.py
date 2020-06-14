@@ -53,7 +53,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         _LOGGER.info(f"Adding nest camera detection sensor uuid: {sensor}")
         camera_detection_sensors.append(NestCameraDetectionSensor(sensor, api))
 
-    async_add_entities(detection_event_sensors)
+    async_add_entities(camera_detection_sensors)
 
 
 class NestTemperatureSensor(Entity):
