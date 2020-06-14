@@ -60,7 +60,9 @@ sensor:
 badnest:
   issue_token: "https://accounts.google.com/o/oauth2/iframerpc....."
   cookie: "OCAK=......"
-
+  camera_only_important: True / False   # (Optional)
+  camera_event_minutes: 120 # minutes to get camera events for (optional)
+  camera_event_timeout: 1  # minutes for detector to hold a state
 climate:
   - platform: badnest
     scan_interval: 10
