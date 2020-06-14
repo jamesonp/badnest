@@ -2,33 +2,28 @@ import logging
 
 from homeassistant.helpers.entity import Entity
 
+import datetime
+
 from .const import DOMAIN
 
 from homeassistant.const import (
     ATTR_BATTERY_LEVEL,
     DEVICE_CLASS_TEMPERATURE,
-    TEMP_CELSIUS
+    TEMP_CELSIUS,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
-PROTECT_SENSOR_TYPES = [
-    "co_status",
-    "smoke_status",
-    "battery_health_state"
-]
+PROTECT_SENSOR_TYPES = ["co_status", "smoke_status", "battery_health_state"]
 
 
-async def async_setup_platform(hass,
-                               config,
-                               async_add_entities,
-                               discovery_info=None):
+async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     """Set up the Nest climate device."""
-    api = hass.data[DOMAIN]['api']
+    api = hass.data[DOMAIN]["api"]
 
     temperature_sensors = []
     _LOGGER.info("Adding temperature sensors")
-    for sensor in api['temperature_sensors']:
+    for sensor in api["temperature_sensors"]:
         _LOGGER.info(f"Adding nest temp sensor uuid: {sensor}")
         temperature_sensors.append(NestTemperatureSensor(sensor, api))
 
@@ -51,6 +46,15 @@ async def async_setup_platform(hass,
             camera_event_sensors.append(NestCameraEventSensor(sensor, api))
 
     async_add_entities(camera_event_sensors)
+    
+    camera_detection_sensors = []
+    _LOGGER.info("Adding nest camera detection sensors")
+    for sensor in api["cameras"]:
+        _LOGGER.info(f"Adding nest camera detection sensor uuid: {sensor}")
+        for sensor_type in PROTECT_SENSOR_TYPES:
+            detection_event_sensors.append(NestCameraDetectionSensor(sensor, api))
+
+    async_add_entities(detection_event_sensors)
 
 
 class NestTemperatureSensor(Entity):
@@ -144,7 +148,7 @@ class NestCameraEventSensor(Entity):
     @property
     def unique_id(self):
         """Return an unique ID."""
-        return self.device_id
+        return self.device_id + "_events"
 
     @property
     def state(self):
@@ -161,14 +165,85 @@ class NestCameraEventSensor(Entity):
 
     @property
     def device_state_attributes(self):
-        if len(self.device.device_data[self.device_id]["events"]):
-            last_event = self.device.device_data[self.device_id]["events"][-1]
-        else:
-            last_event = None
         return {
             "events": self.device.device_data[self.device_id]["events"],
-            "last_event": last_event
-            }
+        }
+
+    def update(self):
+        """Get the latest data from the Protect and updates the states."""
+        self.device.update()
+
+
+class NestCameraDetectionSensor(Entity):
+    """Implementation of Nest Camera Detection Sensor"""
+
+    def __init__(self, device_id, api):
+        """Initialize the sensor."""
+        self._name = "Nest Detection Sensor"
+        self.device_id = device_id
+        self.device = api
+
+    @staticmethod
+    def get_most_important_type(types):
+        if "doorbell" in types:
+            return "doorbell"
+        elif "face" in types:
+            return "face"
+        elif "person" in types:
+            return "person"
+        elif "motions" in types:
+            return "motion"
+        elif "sound" in types:
+            return "sound"
+        elif len(types):
+            return types[0]
+        else:
+            return ""
+
+    @property
+    def unique_id(self):
+        """Return an unique ID."""
+        return self.device_id + "_last_event"
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        try:
+            return self.get_most_important_type(
+                self.device.device_data[self.device_id]["events"][-1]["types"]
+            )
+        except (IndexError, TypeError):
+            return None
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return self.device.device_data[self.device_id]["name"] + " Detector"
+
+    @property
+    def device_state_attributes(self):
+        if len(self.device.device_data[self.device_id]["events"]):
+            last_event = self.device.device_data[self.device_id]["events"][-1]
+            timeout_datetime = (
+                datetime.datetime.now()
+                - datetime.timedelta(minutes=self.device.camera_event_timeout)
+            ).replace(tzinfo=datetime.timezone.utc)
+            end_datetime = datetime.datetime.fromisoformat(last_event["end_time"])
+
+            if last_event["end_time"] and timeout_datetime < end_datetime:
+                return {
+                    "start_time": last_event["start_time"],
+                    "end_time": last_event["end_time"],
+                    "facename": last_event["face_name"],
+                    "is_important": last_event["is_important"],
+                    "importance": last_event["importance"],
+                    "types": last_event["types"],
+                    "zone_ids": last_event["zone_ids"],
+                }
+            else:
+                return None
+        else:
+            return None
 
     def update(self):
         """Get the latest data from the Protect and updates the states."""
